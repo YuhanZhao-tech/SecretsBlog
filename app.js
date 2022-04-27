@@ -1,7 +1,10 @@
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
+const bcrypt = require("bcrypt");
 const User = require("./User");
+
+const saltRounds = 10;
 
 mongoose.connect(
 	`mongodb+srv://admin-AidenZhao:${process.env.PASS}@cluster0.j6gax.mongodb.net/UserDB`,
@@ -32,14 +35,19 @@ app.get("/login", function (req, res) {
 });
 
 app.post("/register", function (req, res) {
-	const newUser = new User({
-		email: req.body.username,
-		password: req.body.password,
-	});
-	newUser.save(function (err) {
-		if (err) console.log(err);
-		else res.render("secrets");
-	});
+
+    bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
+        
+        const newUser = new User({
+            email: req.body.username,
+            password: hash,
+        });
+        newUser.save(function (err) {
+            if (err) console.log(err);
+            else res.render("secrets");
+        });
+    })
+
 });
 
 app.post("/login", function (req, res) {
@@ -48,15 +56,18 @@ app.post("/login", function (req, res) {
 	User.findOne({ email: username }, function (err, foundUser) {
 		if (err) console.log(err);
 		else if (foundUser) {
-			if (foundUser.password === password) {
-				res.render("secrets");
-			} else {
-				res.render("login", {
-					errMsg: "Incorrect password",
-					username: username,
-					password: password,
-				});
-			}
+            bcrypt.compare(password, foundUser.password, function(err, match) {
+
+                if (match) {
+                    res.render("secrets");
+                } else {
+                    res.render("login", {
+                        errMsg: "Incorrect password",
+                        username: username,
+                        password: password,
+                    });
+                }
+            })
 		} else {
 			res.render("login", {
 				errMsg: "Incorrect username",
