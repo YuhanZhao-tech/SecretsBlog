@@ -5,9 +5,11 @@ const mongoose = require("mongoose");
 
 
 userSchema = new mongoose.Schema({
+    googleId: String,
+    facebookId: String,
     username: String,
+    name: String,
     password: String,
-    googleId: String
 });
 
 userSchema.plugin(passportLocalMongoose);
