@@ -56,19 +56,7 @@ passport.use(
 			User.findOrCreate({ googleId: profile.id, username: profile.id, name: profile.emails[0].value }, function (err, user) {
 				return cb(err, user);
 			});
-			// User.findOne({googleId: profile.id}, function(err, foundUser) {
-			// 	if (err) console.log(err);
-			// 	else if (foundUser) {
-			// 		return cb(err, foundUser);
-			// 	} else {
-			// 		const newUser = new User({
-			// 			username: profile.emails[0].value,
-			// 			googleId: profile.id
-			// 		})
-			// 		newUser.save();
-			// 		return cb(err, newUser);
-			// 	}
-			// })
+			
 		}
 	)
 );
@@ -142,15 +130,32 @@ app.get("/logout", function (req, res) {
 });
 
 app.get("/secrets", function (req, res) {
-	res.set(
-		"Cache-Control",
-		"no-cache, private, no-store, must-revalidate, max-stal e=0, post-check=0, pre-check-0"
-	);
-	if (req.isAuthenticated()) res.render("secrets");
-	else {
-		res.redirect("/login");
-	}
+	User.find({"secrets": {$ne: null}}, function(err, foundUsers) {
+		if (err) console.log(err);
+		else if (foundUsers) {
+			res.render("secrets", {usersWithSecrets: foundUsers});
+		}
+	})
 });
+
+app.get("/submit", function(req, res) {
+	if (req.isAuthenticated()) res.render("submit");
+	else res.redirect("/login");
+})
+
+app.post("/submit", function(req, res) {
+	const submittedSecret = req.body.secret;
+
+	User.findById(req.user.id, function(err, foundUser) {
+		if (err) console.log(err);
+		else if (foundUser) {
+			foundUser.secrets = submittedSecret;
+			foundUser.save(function() {
+				res.redirect("/secrets");
+			});
+		}
+	})
+})
 
 app.post("/register", function (req, res) {
 	// User.register is from passport local mongoose
